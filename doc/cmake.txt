@@ -1,0 +1,230 @@
+#命令是不区分大小写
+##cmake 最低版本号
+cmake_minimum_required(VERSION 2.8)
+# 设置别名
+set(project_name "learnC")
+#设置项目名
+project($project_name)
+
+#指定可执行目标
+add_executable(demo main.c)
+
+//该命令会查找指定目录下的所有源文件，然后将结果存进指定变量名
+aux_source_directory(<dir> <variable>)
+
+# 并将名称保存到 DIR_SRCS 变量
+
+aux_source_directory(. DIR_SRCS)
+
+# 指定生成目标
+
+add_executable(Demo ${DIR_SRCS})
+
+
+多个目录，多个源文件
+./Demo3
+|
++--- main.cc
+|
++--- math/
+    |
+    +--- MathFunctions.cc
+    |
+    +--- MathFunctions.h
+
+
+
+# CMake 最低版本号要求
+cmake_minimum_required (VERSION 2.8)
+
+# 项目信息
+project (Demo3)
+
+# 查找当前目录下的所有源文件
+# 并将名称保存到 DIR_SRCS 变量
+aux_source_directory(. DIR_SRCS)
+# 添加 math 子目录
+add_subdirectory(math)
+# 指定生成目标
+add_executable(Demo main.cc)
+# 添加链接库
+target_link_libraries(Demo MathFunctions)
+
+
+子目录中的 CMakeLists.txt：
+# 查找当前目录下的所有源文件
+# 并将名称保存到 DIR_LIB_SRCS 变量
+aux_source_directory(. DIR_LIB_SRCS)
+# 生成链接库
+add_library (MathFunctions ${DIR_LIB_SRCS})
+
+
+#在工程中查找并使用其他程序库的方法
+命令 MESSAGE 会将参数的内容输出到终端。
+命令 FIND_PATH 指明头文件查找的路径，原型如下：
+find_path(<VAR> name1 [path1 path2 ...]) 该命令在参数 path* 指示的目录中查找文件 name1 并将查找到的路径保存在变量 VAR中。
+命令 FIND_LIBRARY 同 FIND_PATH 类似,用于查找链接库并将结果保存在变量中。
+
+PROJECT(main)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+SET(CMAKE_SOURCE_DIR .)
+SET(CMAKE_MODULE_PATH ${CMAKE_ROOT}/Modules ${CMAKE_SOURCE_DIR}/cmake/modules)
+AUX_SOURCE_DIRECTORY(. DIR_SRCS)
+ADD_EXECUTABLE(main ${DIR_SRCS})
+##查找链接库和头文件的过程
+FIND_PACKAGE( libdb_cxx REQUIRED)
+MARK_AS_ADVANCED(
+ LIBDB_CXX_INCLUDE_DIR
+ LIBDB_CXX_LIBRARIES
+ )
+
+IF (LIBDB_CXX_INCLUDE_DIR AND LIBDB_CXX_LIBRARIES)
+ MESSAGE(STATUS "Found libdb libraries")
+ INCLUDE_DIRECTORIES(${LIBDB_CXX_INCLUDE_DIR})
+ MESSAGE( ${LIBDB_CXX_LIBRARIES} )
+ TARGET_LINK_LIBRARIES(main ${LIBDB_CXX_LIBRARIES}18 )
+ENDIF (LIBDB_CXX_INCLUDE_DIR AND LIBDB_CXX_LIBRARIES)
+
+使用 cmake 生成 debug 版和 release 版的程序
+PROJECT(main)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+SET(CMAKE_SOURCE_DIR .)
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+AUX_SOURCE_DIRECTORY(. DIR_SRCS)
+ADD_EXECUTABLE(main ${DIR_SRCS})
+
+自定义编译选项
+# CMake 最低版本号要求
+cmake_minimum_required (VERSION 2.8)
+# 项目信息
+project (Demo4)
+# 加入一个配置头文件，用于处理 CMake 对源码的设置
+configure_file (
+"${PROJECT_SOURCE_DIR}/config.h.in"
+"${PROJECT_BINARY_DIR}/config.h"
+)
+# 是否使用自己的 MathFunctions 库
+option (USE_MYMATH
+"Use provided math implementation" ON)
+# 是否加入 MathFunctions 库
+if (USE_MYMATH)
+include_directories ("${PROJECT_SOURCE_DIR}/math")
+add_subdirectory (math)
+set (EXTRA_LIBS ${EXTRA_LIBS} MathFunctions)
+endif (USE_MYMATH)
+# 查找当前目录下的所有源文件
+# 并将名称保存到 DIR_SRCS 变量
+aux_source_directory(. DIR_SRCS)
+# 指定生成目标
+add_executable(Demo ${DIR_SRCS})
+target_link_libraries (Demo ${EXTRA_LIBS})
+
+定制安装规则
+# 指定 MathFunctions 库的安装路径
+install (TARGETS MathFunctions DESTINATION bin)
+install (FILES MathFunctions.h DESTINATION include)
+
+# 指定安装路径
+install (TARGETS Demo DESTINATION bin)
+install (FILES "${PROJECT_BINARY_DIR}/config.h"
+DESTINATION include)
+
+/usr/local/ 是默认安装到的根目录，可以通过修改 CMAKE_INSTALL_PREFIX 变量的值来指定这些文件应该拷贝到哪个根目录
+
+为工程添加测试
+CMake 提供了一个称为 CTest 的测试工具。我们要做的只是在项目根目录的 CMakeLists 文件中调用一系列的 add_test 命令。
+# 启用测试
+enable_testing()
+# 测试程序是否成功运行
+add_test (test_run Demo 5 2)
+# 测试帮助信息是否可以正常提示
+add_test (test_usage Demo)
+set_tests_properties (test_usage
+PROPERTIES PASS_REGULAR_EXPRESSION "Usage: .* base exponent")
+# 测试 5 的平方
+add_test (test_5_2 Demo 5 2)
+set_tests_properties (test_5_2
+PROPERTIES PASS_REGULAR_EXPRESSION "is 25")
+# 测试 10 的 5 次方
+add_test (test_10_5 Demo 10 5)
+set_tests_properties (test_10_5
+PROPERTIES PASS_REGULAR_EXPRESSION "is 100000")
+# 测试 2 的 10 次方
+add_test (test_2_10 Demo 2 10)
+set_tests_properties (test_2_10
+PROPERTIES PASS_REGULAR_EXPRESSION "is 1024")
+
+
+
+# 定义一个宏，用来简化测试工作
+macro (do_test arg1 arg2 result)
+add_test (test_${arg1}_${arg2} Demo ${arg1} ${arg2})
+set_tests_properties (test_${arg1}_${arg2}
+PROPERTIES PASS_REGULAR_EXPRESSION ${result})
+endmacro (do_test)
+
+# 使用该宏进行一系列的数据测试
+do_test (5 2 "is 25")
+do_test (10 5 "is 100000")
+do_test (2 10 "is 1024")
+
+
+支持 gdb
+set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+
+添加环境检查
+添加 CheckFunctionExists 宏，，并调用 check_function_exists 命令测试链接器是否能够在链接阶段找到xx 函数
+
+生成安装包
+需要用到 CPack
+# 构建一个 CPack 安装包
+#导入 InstallRequiredSystemLibraries 模块，以便之后导入 CPack 模块；
+include (InstallRequiredSystemLibraries)
+#设置一些 CPack 相关变量，包括版权信息和版本信息，其中版本信息用了上一节定义的版本号；
+set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/License.txt")
+set (CPACK_PACKAGE_VERSION_MAJOR "${Demo_VERSION_MAJOR}")
+set (CPACK_PACKAGE_VERSION_MINOR "${Demo_VERSION_MINOR}")
+#导入 CPack 模块
+include (CPack)
+
+生成二进制安装包：
+cpack -C CPackConfig.cmake
+
+生成源码安装包
+cpack -C CPackSourceConfig.cmake
+
+
+CLion中使用CMake导入第三方库的方法
+#我们首先定义两个变量INC_DIR和LINK_DIR，用来表示头文件路径和库的路径
+set(INC_DIR /Users/haoran/Downloads/wfdb/include)
+set(LINK_DIR /Users/haoran/Downloads/wfdb/lib
+
+#设置头文件目录、库目录、要链接的库
+include_directories(${INC_DIR})
+link_directories(${LINK_DIR})
+link_libraries(wfdb) -- 必须add_executable之后
+
+样例：
+cmake_minimum_required(VERSION 3.6)
+project(wfdb_demo)
+
+set(CMAKE_CXX_STANDARD 11)
+
+set(SOURCE_FILES main.cpp)
+
+set(INC_DIR /Users/haoran/Downloads/wfdb/include)
+set(LINK_DIR /Users/haoran/Downloads/wfdb/lib)
+
+include_directories(${INC_DIR})
+link_directories(${LINK_DIR})
+link_libraries(wfdb)
+
+add_executable(wfdb_demo ${SOURCE_FILES})
+target_link_libraries(wfdb_demo wfdb)
+
+
+
+
